@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MonAPP - Google APIs</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/aos@2.3.4/dist/aos.css"
+    />
+
+    <style>
+      html,
+      body {
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+          Cantarell, Noto Sans, sans-serif;
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(14px);
+      }
+      .grid-bg {
+        background-image: radial-gradient(
+            circle at 1px 1px,
+            rgba(255, 255, 255, 0.08) 1px,
+            transparent 0
+          );
+        background-size: 24px 24px;
+      }
+    </style>
+  </head>
+
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div
+      class="absolute inset-0 -z-10 grid-bg opacity-60"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="absolute -top-40 left-1/2 -z-10 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-indigo-500/20 blur-3xl"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="absolute -bottom-40 left-1/3 -z-10 h-[520px] w-[520px] rounded-full bg-fuchsia-500/10 blur-3xl"
+      aria-hidden="true"
+    ></div>
+
+    <header class="mx-auto max-w-6xl px-6 pt-10">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div
+            class="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-400 to-fuchsia-400"
+          ></div>
+          <div>
+            <div class="text-lg font-semibold leading-none">MonAPP</div>
+            <div class="text-xs text-slate-300">Google APIs Playground</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            id="btnLogin"
+            class="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold shadow hover:bg-indigo-400 active:scale-[0.99]"
+          >
+            Se connecter avec Google
+          </button>
+          <button
+            id="btnLogout"
+            class="hidden rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold hover:bg-slate-700 active:scale-[0.99]"
+          >
+            Déconnexion
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-6 pb-16 pt-10">
+      <section class="grid gap-6 lg:grid-cols-3" data-aos="fade-up">
+        <div class="glass rounded-2xl p-6 lg:col-span-2">
+          <div class="flex items-start justify-between gap-6">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight">
+                Site moderne + APIs Google (Calendar, People, Gmail)
+              </h1>
+              <p class="mt-2 text-sm text-slate-300">
+                Objectif: lancer <code class="text-slate-200">node index.js</code>
+                puis ouvrir <code class="text-slate-200">localhost:3000</code>.
+              </p>
+            </div>
+            <div class="text-right text-xs text-slate-300">
+              <div id="statusPill" class="inline-flex rounded-full bg-slate-800 px-3 py-1">
+                Non connecté
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 grid gap-3 sm:grid-cols-2">
+            <button
+              id="btnPeople"
+              class="rounded-xl bg-slate-800 px-4 py-3 text-left hover:bg-slate-700"
+            >
+              <div class="text-sm font-semibold">People</div>
+              <div class="text-xs text-slate-300">Voir mon profil Google</div>
+            </button>
+
+            <button
+              id="btnGmailLabels"
+              class="rounded-xl bg-slate-800 px-4 py-3 text-left hover:bg-slate-700"
+            >
+              <div class="text-sm font-semibold">Gmail</div>
+              <div class="text-xs text-slate-300">Lister mes labels</div>
+            </button>
+
+            <button
+              id="btnListEvents"
+              class="rounded-xl bg-slate-800 px-4 py-3 text-left hover:bg-slate-700"
+            >
+              <div class="text-sm font-semibold">Calendar (Admin)</div>
+              <div class="text-xs text-slate-300">Lister les réservations</div>
+            </button>
+
+            <button
+              id="btnCreateEvent"
+              class="rounded-xl bg-slate-800 px-4 py-3 text-left hover:bg-slate-700"
+            >
+              <div class="text-sm font-semibold">Créer une réservation</div>
+              <div class="text-xs text-slate-300">Créer un événement</div>
+            </button>
+          </div>
+
+          <div class="mt-6 grid gap-3 md:grid-cols-3">
+            <div class="md:col-span-1">
+              <label class="text-xs text-slate-300">Email destinataire (Gmail send)</label>
+              <input
+                id="inputTo"
+                class="mt-1 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-400/60"
+                placeholder="ex: toi@gmail.com"
+              />
+            </div>
+            <div class="md:col-span-1">
+              <label class="text-xs text-slate-300">Sujet</label>
+              <input
+                id="inputSubject"
+                class="mt-1 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-400/60"
+                placeholder="Test MonAPP"
+              />
+            </div>
+            <div class="md:col-span-1 flex items-end">
+              <button
+                id="btnSendEmail"
+                class="w-full rounded-xl bg-fuchsia-500 px-4 py-2 text-sm font-semibold shadow hover:bg-fuchsia-400"
+              >
+                Envoyer email
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label class="text-xs text-slate-300">Message</label>
+            <textarea
+              id="inputText"
+              class="mt-1 h-24 w-full resize-none rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-400/60"
+              placeholder="Hello depuis MonAPP 👋"
+            ></textarea>
+          </div>
+        </div>
+
+        <aside class="glass rounded-2xl p-6" data-aos="fade-left">
+          <div class="text-sm font-semibold">Profil</div>
+          <div id="profileBox" class="mt-3 text-sm text-slate-300">
+            Connecte-toi pour voir ton profil.
+          </div>
+
+          <div class="mt-6 rounded-xl bg-slate-900/50 p-4">
+            <div class="text-xs font-semibold text-slate-200">Note</div>
+            <p class="mt-2 text-xs text-slate-300">
+              Gmail utilise des scopes sensibles. En mode TEST, ça marche uniquement
+              pour les utilisateurs de test de ton projet Google Cloud.
+            </p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="mt-6" data-aos="fade-up" data-aos-delay="150">
+        <div class="glass rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <div class="text-sm font-semibold">Console</div>
+              <div class="text-xs text-slate-300">Résultats des appels API</div>
+            </div>
+            <button
+              id="btnClear"
+              class="rounded-xl bg-slate-800 px-3 py-2 text-xs font-semibold hover:bg-slate-700"
+            >
+              Effacer
+            </button>
+          </div>
+
+          <pre
+            id="console"
+            class="mt-4 max-h-[420px] overflow-auto rounded-xl bg-slate-900/70 p-4 text-xs leading-relaxed"
+          ></pre>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+    <script>
+      AOS.init({ once: true, duration: 650, easing: 'ease-out-cubic' });
+      anime({
+        targets: 'header',
+        opacity: [0, 1],
+        translateY: [-12, 0],
+        duration: 650,
+        easing: 'easeOutCubic',
+      });
+    </script>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

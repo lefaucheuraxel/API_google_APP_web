@@ -1,0 +1,29 @@
+{
+  "name": "api_google_app_web",
+  "version": "1.0.0",
+  "description": "un site web qui utilise les api google",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lefaucheuraxel/API_google_APP_web.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lefaucheuraxel/API_google_APP_web/issues"
+  },
+  "homepage": "https://github.com/lefaucheuraxel/API_google_APP_web#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0"
+  }
+}
