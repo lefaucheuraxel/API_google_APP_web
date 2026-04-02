@@ -5,12 +5,14 @@ const { google } = require("googleapis");
 const path = require("path");
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true,
     credentials: true,
   })
 );
+
 app.use(express.json());
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -19,16 +21,26 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-function createOAuthClient() {
+function getRedirectUri(req) {
+  if (process.env.REDIRECT_URI) return process.env.REDIRECT_URI;
+
+  const protoHeader = req?.headers?.["x-forwarded-proto"];
+  const proto = (Array.isArray(protoHeader) ? protoHeader[0] : protoHeader) || req?.protocol;
+  const host = req?.get?.("host");
+  if (!proto || !host) throw new Error("Missing REDIRECT_URI and cannot infer from request");
+  return `${proto}://${host}/auth/callback`;
+}
+
+function createOAuthClient(req) {
   if (!process.env.GOOGLE_CLIENT_ID) throw new Error("Missing GOOGLE_CLIENT_ID");
   if (!process.env.GOOGLE_CLIENT_SECRET)
     throw new Error("Missing GOOGLE_CLIENT_SECRET");
-  if (!process.env.REDIRECT_URI) throw new Error("Missing REDIRECT_URI");
+  const redirectUri = getRedirectUri(req);
 
   return new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.REDIRECT_URI
+    redirectUri
   );
 }
 
@@ -55,7 +67,7 @@ app.get("/health", (req, res) => {
 
 // 1️⃣ LOGIN
 app.get("/auth/google", (req, res) => {
-  const oauth2Client = createOAuthClient();
+  const oauth2Client = createOAuthClient(req);
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
@@ -80,7 +92,7 @@ app.get("/auth/callback", async (req, res) => {
     const code = req.query.code;
     if (!code) return res.status(400).json({ error: "Missing code" });
 
-    const oauth2Client = createOAuthClient();
+    const oauth2Client = createOAuthClient(req);
 
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
@@ -131,7 +143,11 @@ app.get("/auth/callback", async (req, res) => {
       tokens,
     });
   } catch (err) {
-    res.status(500).json({ error: err?.message || "OAuth callback failed" });
+    const details = err?.response?.data || err?.errors || undefined;
+    res.status(500).json({
+      error: err?.message || "OAuth callback failed",
+      details,
+    });
   }
 });
 
@@ -140,7 +156,7 @@ app.get("/people/me", async (req, res) => {
     const token = getBearerToken(req);
     if (!token) return res.status(401).json({ error: "Missing access token" });
 
-    const oauth2Client = createOAuthClient();
+    const oauth2Client = createOAuthClient(req);
     oauth2Client.setCredentials({ access_token: token });
 
     const people = google.people({ version: "v1", auth: oauth2Client });
@@ -160,7 +176,7 @@ app.get("/gmail/labels", async (req, res) => {
     const token = getBearerToken(req);
     if (!token) return res.status(401).json({ error: "Missing access token" });
 
-    const oauth2Client = createOAuthClient();
+    const oauth2Client = createOAuthClient(req);
     oauth2Client.setCredentials({ access_token: token });
 
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
@@ -181,7 +197,7 @@ app.post("/gmail/send", async (req, res) => {
     if (!subject) return res.status(400).json({ error: "Missing subject" });
     if (!text) return res.status(400).json({ error: "Missing text" });
 
-    const oauth2Client = createOAuthClient();
+    const oauth2Client = createOAuthClient(req);
     oauth2Client.setCredentials({ access_token: token });
 
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
@@ -223,7 +239,7 @@ app.post("/create-event", async (req, res) => {
     if (!start) return res.status(400).json({ error: "Missing start" });
     if (!end) return res.status(400).json({ error: "Missing end" });
 
-    const oauth2Client = createOAuthClient();
+    const oauth2Client = createOAuthClient(req);
     oauth2Client.setCredentials({ access_token: token });
 
     const calendar = google.calendar({
@@ -252,7 +268,7 @@ app.post("/events", async (req, res) => {
     const token = getBearerToken(req) || req.body?.access_token;
     if (!token) return res.status(401).json({ error: "Missing access token" });
 
-    const oauth2Client = createOAuthClient();
+    const oauth2Client = createOAuthClient(req);
     oauth2Client.setCredentials({ access_token: token });
 
     const calendar = google.calendar({
@@ -284,7 +300,7 @@ app.post("/delete-event", async (req, res) => {
     const { eventId } = req.body;
     if (!eventId) return res.status(400).json({ error: "Missing eventId" });
 
-    const oauth2Client = createOAuthClient();
+    const oauth2Client = createOAuthClient(req);
     oauth2Client.setCredentials({ access_token: token });
 
     const calendar = google.calendar({
