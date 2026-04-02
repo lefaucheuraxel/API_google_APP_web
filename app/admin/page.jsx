@@ -1,13 +1,22 @@
-import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { getToken } from 'next-auth/jwt';
 
 import Shell from '../../components/Shell.jsx';
-import { authOptions } from '../../lib/auth';
 import prisma from '../../lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.isAdmin) redirect('/');
+  const cookie = headers().get('cookie') || '';
+  const token = await getToken({
+    req: { headers: { cookie } },
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  const adminEmail = (process.env.ADMIN_EMAIL || 'lefaucheuraxel@gmail.com').toLowerCase();
+  const isAdmin = token?.email && String(token.email).toLowerCase() === adminEmail;
+  if (!isAdmin) redirect('/');
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
@@ -37,7 +46,7 @@ export default async function AdminPage() {
       <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
         <div className="text-sm font-semibold">Utilisateurs</div>
         <div className="mt-1 text-xs text-slate-300">
-          Admin unique: {session?.user?.email}
+          Admin unique: {token?.email}
         </div>
 
         <div className="mt-6 grid gap-3">

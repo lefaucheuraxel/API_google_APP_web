@@ -1,12 +1,11 @@
-import { getServerSession } from 'next-auth/next';
-
-import { authOptions } from '../../../../lib/auth';
+import { requireAuth } from '../../../../lib/apiAuth';
 import prisma from '../../../../lib/prisma';
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
-  if (!userId) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+export async function GET(req) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+  const userId = auth.userId;
+  if (!userId) return Response.json({ error: 'Missing userId' }, { status: 400 });
 
   const count = await prisma.notification.count({
     where: { userId, readAt: null },

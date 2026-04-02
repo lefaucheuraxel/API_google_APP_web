@@ -1,14 +1,11 @@
-import { getServerSession } from 'next-auth/next';
-
-import { authOptions } from '../../../../lib/auth';
+import { requireAuth } from '../../../../lib/apiAuth';
 import prisma from '../../../../lib/prisma';
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
-  if (!userId) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+export async function GET(req) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return new Response('Unauthorized', { status: auth.status });
+  const userId = auth.userId;
+  if (!userId) return new Response('Missing userId', { status: 400 });
 
   let lastCount = null;
   let interval = null;

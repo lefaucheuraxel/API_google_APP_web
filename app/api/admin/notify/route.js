@@ -1,14 +1,11 @@
-import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
 
-import { authOptions } from '../../../../lib/auth';
+import { requireAdmin } from '../../../../lib/apiAuth';
 import prisma from '../../../../lib/prisma';
 
 export async function POST(req) {
-  const session = await getServerSession(authOptions);
-  if (!session?.isAdmin) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const admin = await requireAdmin(req);
+  if (!admin.ok) return Response.json({ error: admin.error }, { status: admin.status });
 
   const form = await req.formData();
   const userId = String(form.get('userId') || '');

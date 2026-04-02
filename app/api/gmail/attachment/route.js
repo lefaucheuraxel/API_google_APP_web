@@ -1,7 +1,6 @@
-import { getServerSession } from 'next-auth/next';
 import { google } from 'googleapis';
 
-import { authOptions } from '../../../../lib/auth';
+import { requireGoogle } from '../../../../lib/apiAuth';
 
 function decodeBase64UrlToBuffer(data) {
   const normalized = (data || '').replace(/-/g, '+').replace(/_/g, '/');
@@ -10,10 +9,8 @@ function decodeBase64UrlToBuffer(data) {
 }
 
 export async function GET(req) {
-  const session = await getServerSession(authOptions);
-  if (!session?.googleAccessToken) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+  const auth = await requireGoogle(req);
+  if (!auth.ok) return new Response('Unauthorized', { status: auth.status });
 
   const { searchParams } = new URL(req.url);
   const messageId = String(searchParams.get('messageId') || '').trim();
@@ -24,7 +21,7 @@ export async function GET(req) {
   if (!messageId || !attachmentId) return new Response('Missing params', { status: 400 });
 
   const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: session.googleAccessToken });
+  oauth2Client.setCredentials({ access_token: auth.googleAccessToken });
 
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
   const att = await gmail.users.messages.attachments.get({

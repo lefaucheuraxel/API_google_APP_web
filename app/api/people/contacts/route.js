@@ -1,16 +1,13 @@
-import { getServerSession } from 'next-auth/next';
 import { google } from 'googleapis';
 
-import { authOptions } from '../../../../lib/auth';
+import { requireGoogle } from '../../../../lib/apiAuth';
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.googleAccessToken) {
-    return Response.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+export async function GET(req) {
+  const auth = await requireGoogle(req);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
 
   const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: session.googleAccessToken });
+  oauth2Client.setCredentials({ access_token: auth.googleAccessToken });
 
   const people = google.people({ version: 'v1', auth: oauth2Client });
   const connections = await people.people.connections.list({

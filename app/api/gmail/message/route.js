@@ -1,7 +1,6 @@
-import { getServerSession } from 'next-auth/next';
 import { google } from 'googleapis';
 
-import { authOptions } from '../../../../lib/auth';
+import { requireGoogle } from '../../../../lib/apiAuth';
 
 function decodeBase64Url(data) {
   if (!data) return '';
@@ -52,17 +51,15 @@ function findAttachments(payload) {
 }
 
 export async function GET(req) {
-  const session = await getServerSession(authOptions);
-  if (!session?.googleAccessToken) {
-    return Response.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  const auth = await requireGoogle(req);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
 
   const { searchParams } = new URL(req.url);
   const id = String(searchParams.get('id') || '').trim();
   if (!id) return Response.json({ error: 'Missing id' }, { status: 400 });
 
   const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: session.googleAccessToken });
+  oauth2Client.setCredentials({ access_token: auth.googleAccessToken });
 
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
   const msg = await gmail.users.messages.get({ userId: 'me', id, format: 'full' });

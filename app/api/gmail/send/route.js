@@ -1,7 +1,6 @@
-import { getServerSession } from 'next-auth/next';
 import { google } from 'googleapis';
 
-import { authOptions } from '../../../../lib/auth';
+import { requireGoogle } from '../../../../lib/apiAuth';
 
 function encodeMessage({ to, subject, text }) {
   const messageParts = [
@@ -23,10 +22,8 @@ function encodeMessage({ to, subject, text }) {
 }
 
 export async function POST(req) {
-  const session = await getServerSession(authOptions);
-  if (!session?.googleAccessToken) {
-    return Response.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  const auth = await requireGoogle(req);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
 
   const body = await req.json().catch(() => ({}));
   const to = (body?.to || '').trim();
@@ -38,7 +35,7 @@ export async function POST(req) {
   if (!text) return Response.json({ error: 'Missing text' }, { status: 400 });
 
   const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: session.googleAccessToken });
+  oauth2Client.setCredentials({ access_token: auth.googleAccessToken });
 
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 

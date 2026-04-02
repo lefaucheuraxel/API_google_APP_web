@@ -1,19 +1,16 @@
-import { getServerSession } from 'next-auth/next';
 import { google } from 'googleapis';
 
-import { authOptions } from '../../../../lib/auth';
+import { requireGoogle } from '../../../../lib/apiAuth';
 
 export async function GET(req) {
-  const session = await getServerSession(authOptions);
-  if (!session?.googleAccessToken) {
-    return Response.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  const auth = await requireGoogle(req);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
 
   const { searchParams } = new URL(req.url);
   const maxResults = Number(searchParams.get('maxResults') || '15');
 
   const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: session.googleAccessToken });
+  oauth2Client.setCredentials({ access_token: auth.googleAccessToken });
 
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
@@ -38,10 +35,8 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  const session = await getServerSession(authOptions);
-  if (!session?.googleAccessToken) {
-    return Response.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  const auth = await requireGoogle(req);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
 
   const body = await req.json().catch(() => ({}));
   const summary = String(body?.summary || '').trim();
@@ -77,10 +72,8 @@ export async function POST(req) {
 }
 
 export async function PATCH(req) {
-  const session = await getServerSession(authOptions);
-  if (!session?.googleAccessToken) {
-    return Response.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  const auth = await requireGoogle(req);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
 
   const body = await req.json().catch(() => ({}));
   const eventId = String(body?.eventId || '').trim();
@@ -110,17 +103,15 @@ export async function PATCH(req) {
 }
 
 export async function DELETE(req) {
-  const session = await getServerSession(authOptions);
-  if (!session?.googleAccessToken) {
-    return Response.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  const auth = await requireGoogle(req);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
 
   const { searchParams } = new URL(req.url);
   const eventId = String(searchParams.get('eventId') || '').trim();
   if (!eventId) return Response.json({ error: 'Missing eventId' }, { status: 400 });
 
   const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: session.googleAccessToken });
+  oauth2Client.setCredentials({ access_token: auth.googleAccessToken });
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
   await calendar.events.delete({

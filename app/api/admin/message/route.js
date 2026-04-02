@@ -1,7 +1,6 @@
-import { getServerSession } from 'next-auth/next';
 import { google } from 'googleapis';
 
-import { authOptions } from '../../../../lib/auth';
+import { requireAdmin, requireGoogle } from '../../../../lib/apiAuth';
 import prisma from '../../../../lib/prisma';
 
 function encodeMessage({ to, subject, text }) {
@@ -24,14 +23,11 @@ function encodeMessage({ to, subject, text }) {
 }
 
 export async function POST(req) {
-  const session = await getServerSession(authOptions);
-  if (!session?.isAdmin) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const admin = await requireAdmin(req);
+  if (!admin.ok) return Response.json({ error: admin.error }, { status: admin.status });
 
-  if (!session?.googleAccessToken) {
-    return Response.json({ error: 'Admin Google token missing' }, { status: 400 });
-  }
+  const auth = await requireGoogle(req);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
 
   const form = await req.formData();
   const userId = String(form.get('userId') || '');
@@ -52,7 +48,7 @@ export async function POST(req) {
   await prisma.message.create({
     data: {
       toUserId: user.id,
-      fromEmail: session.user.email || 'admin',
+      fromEmail: admin.email || 'admin',
       subject,
       body,
     },
@@ -70,7 +66,7 @@ export async function POST(req) {
     if (!user.email) return Response.json({ error: 'Target user has no email' }, { status: 400 });
 
     const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({ access_token: session.googleAccessToken });
+    oauth2Client.setCredentials({ access_token: auth.googleAccessToken });
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
     const raw = encodeMessage({ to: user.email, subject, text: body });
